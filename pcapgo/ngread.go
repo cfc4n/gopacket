@@ -55,6 +55,7 @@ type NgReader struct {
 	firstSectionFound bool
 	activeSection     bool
 	bigEndian         bool
+	decryptionSecrets []decryptionSecret
 }
 
 // NewNgReader initializes a new writer, reads the first section header, and if necessary according to the options the first interface.
@@ -64,7 +65,8 @@ func NewNgReader(r io.Reader, options NgReaderOptions) (*NgReader, error) {
 		currentOption: ngOption{
 			value: make([]byte, 1024),
 		},
-		options: options,
+		decryptionSecrets: make([]decryptionSecret, 0),
+		options:           options,
 	}
 
 	//pcapng _must_ start with a section header
@@ -483,6 +485,10 @@ FIND_PACKET:
 			}
 		case ngBlockTypeInterfaceStatistics:
 			if err := r.readInterfaceStatistics(); err != nil {
+				return err
+			}
+		case ngBlockTypeDecryptionSecrets:
+			if err := r.readDecryptionSecrets(); err != nil {
 				return err
 			}
 		case ngBlockTypeSectionHeader:

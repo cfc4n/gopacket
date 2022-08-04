@@ -37,7 +37,19 @@ const (
 	ngBlockTypeSimplePacket        ngBlockType = 3          // Simple packet block
 	ngBlockTypeInterfaceStatistics ngBlockType = 5          // Interface statistics block
 	ngBlockTypeEnhancedPacket      ngBlockType = 6          // Enhanced packet block
+	ngBlockTypeDecryptionSecrets   ngBlockType = 0x0000000A // Decryption secrets block
 	ngBlockTypeSectionHeader       ngBlockType = 0x0A0D0D0A // Section header block (same in both endians)
+)
+
+const (
+	/*
+	 * Type describing the format of Decryption Secrets Block (DSB).
+	 */
+	SECRETS_TYPE_TLS            = 0x544c534b /* TLS Key Log */
+	SECRETS_TYPE_SSH            = 0x5353484b /* SSH Key Log */
+	SECRETS_TYPE_WIREGUARD      = 0x57474b4c /* WireGuard Key Log */
+	SECRETS_TYPE_ZIGBEE_NWK_KEY = 0x5a4e574b /* Zigbee NWK Key */
+	SECRETS_TYPE_ZIGBEE_APS_KEY = 0x5a415053 /* Zigbee APS Key */
 )
 
 type ngOptionCode uint16

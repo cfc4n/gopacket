@@ -1,0 +1,100 @@
+// Copyright 2018 The GoPacket Authors. All rights reserved.
+//
+// Use of this source code is governed by a BSD-style license
+// that can be found in the LICENSE file in the root of the source
+// tree.
+// author: CFC4N <cfc4n@cnxct.com>
+
+package pcapgo
+
+import (
+	"encoding/binary"
+)
+
+/*
+	Decryption Secrets Block (DSB) memory layout.
+	via https://github.com/pcapng/pcapng/blob/master/draft-tuexen-opsawg-pcapng.md
+                        1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ 0 |                   Block Type = 0x0000000A                     |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ 4 |                      Block Total Length                       |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ 8 |                          Secrets Type                         |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+12 |                         Secrets Length                        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+16 /                                                               /
+   /                          Secrets Data                         /
+   /              (variable length, padded to 32 bits)             /
+   /                                                               /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   /                                                               /
+   /                       Options (variable)                      /
+   /                                                               /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   /                       Block Total Length                      /
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+	Block Type: The block type of the Decryption Secrets Block is 10.
+
+	Block Total Length: total size of this block, as described in {{section_block}}.
+
+	Secrets Type (32 bits): an unsigned integer identifier that describes the format of the following Secrets field. Requests for new Secrets Type codes should be made by creating a pull request to update this document as described in {{section_block_code_registry}}.
+
+	Secrets Length (32 bits): an unsigned integer that indicates the size of the following Secrets field, without any padding octets.
+
+	Secrets Data: binary data containing secrets, padded to a 32 bit boundary.
+
+	Options: optionally, a list of options (formatted according to the rules defined in {{section_opt}}) can be present. No DSB-specific options are currently defined.
+*/
+
+const (
+	PcapngBlockHeadersize        = 8  // block type + block total length
+	PcapngSectionHeaderBlockSize = 16 // Secrets type + Secrets length
+	PcapngSecretDataSize         = 4  // Secrets Data
+)
+
+// pcapngBlockHeader is the header of a pcapng block.
+type pcapngBlockHeader struct {
+	blockType        uint32
+	blockTotalLength uint32
+}
+
+// pcapngDecryptionSecretsBlock is the header of a section.
+type pcapngDecryptionSecretsBlock struct {
+	secretsType   uint32
+	secretsLength uint32
+}
+
+// WriteDecryptionSecretsBlock writes a Decryption Secrets Block to the writer.
+func (w *NgWriter) WriteDecryptionSecretsBlock(tlsKeyLog []byte) error {
+
+	tlsKeyLogLen := len(tlsKeyLog)
+	padding := (4 - tlsKeyLogLen&3) & 3
+	tlsKeyLogLen += padding
+
+	length := uint32(PcapngBlockHeadersize + PcapngSectionHeaderBlockSize + tlsKeyLogLen + padding + PcapngSecretDataSize)
+
+	// write block header
+	binary.LittleEndian.PutUint32(w.buf[:4], uint32(ngBlockTypeDecryptionSecrets))
+	binary.LittleEndian.PutUint32(w.buf[4:8], length)
+
+	// write decryption secrets block
+	binary.LittleEndian.PutUint32(w.buf[8:12], SECRETS_TYPE_TLS)
+	binary.LittleEndian.PutUint32(w.buf[12:16], uint32(tlsKeyLogLen))
+
+	if _, err := w.w.Write(w.buf[:16]); err != nil {
+		return err
+	}
+
+	// write secrets data
+	if _, err := w.w.Write(tlsKeyLog); err != nil {
+		return err
+	}
+
+	binary.LittleEndian.PutUint32(w.buf[:4], 0)
+	_, err := w.w.Write(w.buf[4-padding : 8]) // padding + length
+	return err
+}
