@@ -15,7 +15,7 @@ type BufferPacketSource struct {
 	ci    []gopacket.CaptureInfo
 }
 
-// TestNgReadDSB tests the NgReadDSB function.
+// TestNgReadDSB tests the readDecryptionSecretsBlock function.
 func TestNgReaderDSB(t *testing.T) {
 
 	// Test that we can read a pcapng file with DSB.
@@ -36,6 +36,8 @@ func TestNgReaderDSB(t *testing.T) {
 	}
 
 	b := &BufferPacketSource{}
+	var ii int
+	var found bool
 	for {
 		data, ci, err := r.ReadPacketData()
 		if err == io.EOF {
@@ -44,6 +46,14 @@ func TestNgReaderDSB(t *testing.T) {
 		}
 		b.data = append(b.data, data)
 		b.ci = append(b.ci, ci)
+		if !found && len(r.decryptionSecrets) > 0 {
+			found = true
+			t.Log("Decryption Secrets Block found, index block:", ii)
+		}
+		ii++
+	}
+	if len(b.data) != len(b.ci) || len(b.ci) <= 0 {
+		t.Fatal("unexpected data or data length:", len(b.data), ", ci length", len(b.ci))
 	}
 
 	duration := time.Since(start)

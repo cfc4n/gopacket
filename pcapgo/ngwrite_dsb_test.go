@@ -5,16 +5,17 @@ import (
 	"github.com/google/gopacket/layers"
 	"io"
 	"math"
+	"net"
 	"os"
 	"testing"
 )
 
-// TestNgWriterDSB tests the NgReadDSB function.
+// TestNgWriterDSB tests the WriteDecryptionSecretsBlock function.
 func TestNgWriterDSB(t *testing.T) {
 
 	// Test that we can read a DSB file.
 	pcapngFile := "tests/le/test300.pcapng"
-	tlsKey := "CLIENT_RANDOM 75db01ecd858f0066c5b75884de569b7370101ee0cd6a21f900333d501ffc2a4 05edde5321c8a8fe04517c3b7e0e443075c0d6bdae4bffe44a72f9c11e734c6124be4ab5bd932e7d52573e08026b6a35\n"
+	tlsKey := "CLIENT_RANDOM 65bafa1a1a37aebce6ab7af420f9a6ca10513ad1d53aececbe831a28982a5c18 8d1e0c21e653f8e0720c987c3daaca094ff6eb1ccc9e15a8384a214139dfdcf25f0ee77ac81250c7a11b8da561313528\n"
 	testf, err := os.Open(pcapngFile)
 	if err != nil {
 		t.Fatal("Couldn't open file:", err)
@@ -51,6 +52,7 @@ func TestNgWriterDSB(t *testing.T) {
 	if err != nil {
 		t.Fatal("Couldn't write Decryption Secrets Block:", err)
 	}
+
 	for i, ci := range b.ci {
 		err = writer.WritePacket(ci, b.data[i])
 		if err != nil {
@@ -70,7 +72,7 @@ func TestNgWriterDSB(t *testing.T) {
 }
 
 func createPcapng(pcapngFilename string) (*NgWriter, error) {
-	pcapFile, err := os.OpenFile(pcapngFilename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	pcapFile, err := os.OpenFile(pcapngFilename, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("error creating pcap file: %v", err)
 	}
@@ -97,10 +99,24 @@ func createPcapng(pcapngFilename string) (*NgWriter, error) {
 		return nil, err
 	}
 
-	// Flush the header
-	err = pcapWriter.Flush()
+	netIfs, err := net.Interfaces()
 	if err != nil {
 		return nil, err
+	}
+	// insert other interfaces into pcapng file
+	for _, iface := range netIfs {
+		ngIface = NgInterface{
+			Name:       iface.Name,
+			Comment:    "see https://ecapture.cc for more information.",
+			Filter:     "",
+			LinkType:   layers.LinkTypeEthernet,
+			SnapLength: uint32(math.MaxUint16),
+		}
+
+		_, err = pcapWriter.AddInterface(ngIface)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return pcapWriter, nil
 }

@@ -52,6 +52,12 @@ const (
 	DSB_SECRETS_TYPE_ZIGBEE_APS_KEY uint32 = 0x5a415053 /* Zigbee APS Key */
 )
 
+// define error types for DSB
+var (
+	ErrUnsupportedSecretsType = errors.New("Unsupported Decryption Secrets Block (DSB) type")
+	ErrUnknownSecretsType     = errors.New("Unknown Decryption Secrets Block (DSB) type")
+)
+
 type ngOptionCode uint16
 
 const (
