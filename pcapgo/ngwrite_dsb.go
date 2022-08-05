@@ -83,7 +83,8 @@ func (w *NgWriter) WriteDecryptionSecretsBlock(secretType uint32, secretPayload 
 	secretPayloadLen := len(secretPayload)
 	padding := (4 - secretPayloadLen&3) & 3
 
-	// MIN_DSB_SIZE + secretPayloadLen + padding
+	// via https://github.com/wireshark/wireshark/blob/885d6b7f731760f4a76e0f257af57d03934986ed/wiretap/pcapng.c#L5233
+	// langth = MIN_DSB_SIZE + secretPayloadLen + padding
 	// MIN_DSB_SIZE = MIN_BLOCK_SIZE + PcapngDecryptionSecretsBlockSize
 	// MIN_BLOCK_SIZE = PcapngBlockHeadersize + 4
 	//
