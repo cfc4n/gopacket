@@ -316,6 +316,10 @@ func (r *NgReader) firstInterface() error {
 			return nil
 		case ngBlockTypePacket, ngBlockTypeEnhancedPacket, ngBlockTypeSimplePacket, ngBlockTypeInterfaceStatistics:
 			return errors.New("A section must have an interface before a packet block")
+		case ngBlockTypeDecryptionSecrets:
+			if err := r.readDecryptionSecretsBlock(); err != nil {
+				return err
+			}
 		}
 		if _, err := r.r.Discard(int(r.currentBlock.length)); err != nil {
 			return err
@@ -485,10 +489,6 @@ FIND_PACKET:
 			}
 		case ngBlockTypeInterfaceStatistics:
 			if err := r.readInterfaceStatistics(); err != nil {
-				return err
-			}
-		case ngBlockTypeDecryptionSecrets:
-			if err := r.readDecryptionSecrets(); err != nil {
 				return err
 			}
 		case ngBlockTypeSectionHeader:

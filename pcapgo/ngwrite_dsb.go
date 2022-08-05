@@ -51,9 +51,8 @@ import (
 */
 
 const (
-	PcapngBlockHeadersize        = 8  // block type + block total length
-	PcapngSectionHeaderBlockSize = 16 // Secrets type + Secrets length
-	PcapngSecretDataSize         = 4  // Secrets Data
+	PcapngBlockHeadersize            = 8 // block type + block total length
+	PcapngDecryptionSecretsBlockSize = 8 // Secrets type + Secrets length
 )
 
 // pcapngBlockHeader is the header of a pcapng block.
@@ -69,28 +68,31 @@ type pcapngDecryptionSecretsBlock struct {
 }
 
 // WriteDecryptionSecretsBlock writes a Decryption Secrets Block to the writer.
-func (w *NgWriter) WriteDecryptionSecretsBlock(tlsKeyLog []byte) error {
+func (w *NgWriter) WriteDecryptionSecretsBlock(secretType uint32, secretPayload []byte) error {
 
-	tlsKeyLogLen := len(tlsKeyLog)
-	padding := (4 - tlsKeyLogLen&3) & 3
-	tlsKeyLogLen += padding
+	switch secretType {
 
-	length := uint32(PcapngBlockHeadersize + PcapngSectionHeaderBlockSize + tlsKeyLogLen + padding + PcapngSecretDataSize)
+	}
+	secretPayloadLen := len(secretPayload)
+	padding := (4 - secretPayloadLen&3) & 3
+	secretPayloadLen += padding
+
+	length := uint32(PcapngBlockHeadersize + PcapngDecryptionSecretsBlockSize + secretPayloadLen + padding)
 
 	// write block header
 	binary.LittleEndian.PutUint32(w.buf[:4], uint32(ngBlockTypeDecryptionSecrets))
 	binary.LittleEndian.PutUint32(w.buf[4:8], length)
 
 	// write decryption secrets block
-	binary.LittleEndian.PutUint32(w.buf[8:12], SECRETS_TYPE_TLS)
-	binary.LittleEndian.PutUint32(w.buf[12:16], uint32(tlsKeyLogLen))
+	binary.LittleEndian.PutUint32(w.buf[8:12], DSB_SECRETS_TYPE_TLS)
+	binary.LittleEndian.PutUint32(w.buf[12:16], uint32(secretPayloadLen))
 
 	if _, err := w.w.Write(w.buf[:16]); err != nil {
 		return err
 	}
 
 	// write secrets data
-	if _, err := w.w.Write(tlsKeyLog); err != nil {
+	if _, err := w.w.Write(secretPayload); err != nil {
 		return err
 	}
 

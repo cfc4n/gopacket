@@ -45,11 +45,11 @@ const (
 	/*
 	 * Type describing the format of Decryption Secrets Block (DSB).
 	 */
-	SECRETS_TYPE_TLS            = 0x544c534b /* TLS Key Log */
-	SECRETS_TYPE_SSH            = 0x5353484b /* SSH Key Log */
-	SECRETS_TYPE_WIREGUARD      = 0x57474b4c /* WireGuard Key Log */
-	SECRETS_TYPE_ZIGBEE_NWK_KEY = 0x5a4e574b /* Zigbee NWK Key */
-	SECRETS_TYPE_ZIGBEE_APS_KEY = 0x5a415053 /* Zigbee APS Key */
+	DSB_SECRETS_TYPE_TLS            uint32 = 0x544c534b /* TLS Key Log */
+	DSB_SECRETS_TYPE_SSH            uint32 = 0x5353484b /* SSH Key Log */
+	DSB_SECRETS_TYPE_WIREGUARD      uint32 = 0x57474b4c /* WireGuard Key Log */
+	DSB_SECRETS_TYPE_ZIGBEE_NWK_KEY uint32 = 0x5a4e574b /* Zigbee NWK Key */
+	DSB_SECRETS_TYPE_ZIGBEE_APS_KEY uint32 = 0x5a415053 /* Zigbee APS Key */
 )
 
 type ngOptionCode uint16
